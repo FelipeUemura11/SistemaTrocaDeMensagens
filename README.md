@@ -15,19 +15,6 @@ Este projeto consiste em dois servidores:
 - cryptography
 - requests
 
-## Instalação
-
-1. Clone o repositório:
-```bash
-git clone [URL_DO_SEU_REPOSITORIO]
-cd SistemaTrocaDeMensagens
-```
-
-2. Instale as dependências:
-```bash
-pip install flask cryptography requests
-```
-
 ## Como Usar
 
 1. Inicie o servidor receptor (em um terminal):
