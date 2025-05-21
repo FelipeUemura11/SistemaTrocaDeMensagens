@@ -2,6 +2,21 @@
 
 Um sistema simples de troca de mensagens criptografadas usando criptografia assimétrica (RSA) implementado em Python com Flask.
 
+## Como Funciona
+
+O sistema demonstra um exemplo prático de criptografia assimétrica:
+
+1. **App2** quer enviar a mensagem "Olá, App1!" para **App1**
+2. **App2** solicita a chave pública de **App1**
+3. **App2** usa a chave pública para criptografar a mensagem:
+   ```
+   "Olá, App1!" -> aG93J3MgeW91IDop (exemplo de mensagem criptografada)
+   ```
+4. **App1** recebe a mensagem criptografada e usa sua chave privada para descriptografar:
+   ```
+   aG93J3MgeW91IDop -> "Olá, App1!"
+   ```
+
 ## Descrição
 
 Este projeto consiste em dois servidores:

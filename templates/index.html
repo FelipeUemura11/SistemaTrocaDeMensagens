@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troca de mensagens Criptografadas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Troca de mensagens Criptografadas</h1>
+        
+        <div class="message-box">
+            <h2>Enviar Mensagem</h2>
+            <form id="messageForm">
+                <div class="input-group">
+                    <label for="message">Sua mensagem:</label>
+                    <textarea id="message" name="message" rows="4" placeholder="Digite sua mensagem aqui..."></textarea>
+                </div>
+                <button type="submit">Enviar Mensagem Criptografada</button>
+            </form>
+        </div>
+
+        <div class="status-box">
+            <h2>Status da Mensagem</h2>
+            <div id="status" class="status">
+                <p>Aguardando mensagem...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.getElementById('messageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            const status = document.getElementById('status');
+            
+            status.innerHTML = '<p>Enviando mensagem...</p>';
+            
+            try {
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status) {
+                    status.innerHTML = `<p class="success">✓ ${data.status}</p>`;
+                } else if (data.error) {
+                    status.innerHTML = `<p class="error">✗ ${data.error}</p>`;
+                }
+            } catch (error) {
+                status.innerHTML = `<p class="error">✗ Erro ao enviar mensagem: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -1,5 +1,5 @@
 # servidor remetente
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -63,10 +63,17 @@ def send_encrypted_message(message):
         logger.error(f"Erro ao enviar mensagem: {str(e)}")
         return {"error": str(e)}
 
-@app.route("/")
+@app.route("/", methods=['GET', 'POST'])
 def send():
+    if request.method == 'GET':
+        return render_template('index.html')
+    
     try:
-        message = "Enviando mensagem criptografada para o servidor receptor!"
+        data = request.get_json()
+        if not data or 'message' not in data:
+            return jsonify({"error": "Mensagem não fornecida"}), 400
+            
+        message = data['message']
         result = send_encrypted_message(message)
         return jsonify(result)
     except Exception as e:
