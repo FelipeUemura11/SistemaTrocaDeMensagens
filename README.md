@@ -1,72 +1,128 @@
 # Sistema de Troca de Mensagens Criptografadas
 
-Um sistema simples de troca de mensagens criptografadas usando criptografia assimétrica (RSA) implementado em Python com Flask.
+Este é um sistema de troca de mensagens seguro que utiliza criptografia RSA para garantir a confidencialidade e SHA-256 para garantir a integridade das mensagens.
 
-## Como Funciona
+## Arquitetura do Sistema
 
-O sistema demonstra um exemplo prático de criptografia assimétrica:
+O sistema é composto por dois servidores:
 
-1. **App2** quer enviar a mensagem "Olá, App1!" para **App1**
-2. **App2** solicita a chave pública de **App1**
-3. **App2** usa a chave pública para criptografar a mensagem:
-   ```
-   "Olá, App1!" -> aG93J3MgeW91IDop (exemplo de mensagem criptografada)
-   ```
-4. **App1** recebe a mensagem criptografada e usa sua chave privada para descriptografar:
-   ```
-   aG93J3MgeW91IDop -> "Olá, App1!"
-   ```
+1. **Servidor Receptor (app1.py)**
+   - Porta: 5000
+   - Responsável por receber e descriptografar as mensagens
+   - Gerencia as chaves públicas e privadas
+   - Verifica a integridade das mensagens
 
-## Descrição
+2. **Servidor Remetente (app2.py)**
+   - Porta: 5001
+   - Responsável por enviar mensagens criptografadas
+   - Interface web para envio de mensagens
+   - Gerencia a criptografia das mensagens
 
-Este projeto consiste em dois servidores:
-- **Servidor Receptor (app1.py)**: Gera um par de chaves RSA e fornece a chave pública. Recebe e descriptografa mensagens.
-- **Servidor Remetente (app2.py)**: Obtém a chave pública, criptografa mensagens e as envia para o servidor receptor.
+## Funcionalidades Implementadas
+
+### Criptografia RSA
+- Geração de pares de chaves (pública/privada)
+- Criptografia de mensagens usando a chave pública
+- Descriptografia de mensagens usando a chave privada
+
+### Verificação de Integridade
+- Geração de hash SHA-256 das mensagens
+- Verificação de integridade no recebimento
+- Detecção de possíveis manipulações
+
+### Interface Web
+- Formulário para envio de mensagens
+- Feedback visual do status do envio
+- Tratamento de erros e exceções
 
 ## Requisitos
 
 - Python 3.x
 - Flask
-- cryptography
-- requests
+- Requests
+- Bibliotecas padrão: hashlib, random, logging
 
-## Instalação
+## Como Executar
 
-1. Clone o repositório:
-```bash
-git clone [URL_DO_SEU_REPOSITORIO]
-cd SistemaTrocaDeMensagens
-```
-
-2. Instale as dependências:
-```bash
-pip install flask cryptography requests
-```
-
-## Como Usar
-
-1. Inicie o servidor receptor (em um terminal):
+1. Inicie o servidor receptor:
 ```bash
 python app1.py
 ```
 
-2. Inicie o servidor remetente (em outro terminal):
+2. Em outro terminal, inicie o servidor remetente:
 ```bash
 python app2.py
 ```
 
-3. Acesse http://localhost:5001/ no navegador para enviar uma mensagem criptografada.
+3. Acesse a interface web em:
+```
+http://localhost:5001
+```
 
-## Funcionamento
+## Fluxo de Comunicação
 
-1. O servidor receptor (porta 5000) gera um par de chaves RSA
-2. O servidor remetente (porta 5001) obtém a chave pública
-3. Ao acessar a rota "/" do servidor remetente, uma mensagem é criptografada e enviada
-4. O servidor receptor recebe a mensagem, descriptografa e exibe no console
+1. O servidor remetente solicita a chave pública ao servidor receptor
+2. O servidor receptor envia sua chave pública
+3. O servidor remetente:
+   - Criptografa a mensagem usando a chave pública
+   - Gera um hash SHA-256 da mensagem original
+   - Envia a mensagem criptografada e o hash
+4. O servidor receptor:
+   - Recebe a mensagem criptografada e o hash
+   - Descriptografa a mensagem
+   - Verifica a integridade usando o hash
+   - Confirma o recebimento
 
 ## Segurança
 
-- Utiliza criptografia RSA com padding OAEP
-- Chaves de 2048 bits
-- Mensagens são criptografadas antes do envio
-- A chave privada permanece apenas no servidor receptor
+O sistema implementa várias camadas de segurança:
+
+1. **Criptografia RSA**
+   - Chaves de 512 bits
+   - Exponente público padrão (65537)
+   - Geração segura de números primos
+
+2. **Verificação de Integridade**
+   - Hash SHA-256 para cada mensagem
+   - Verificação de manipulação
+   - Rejeição de mensagens alteradas
+
+3. **Tratamento de Erros**
+   - Logs detalhados de operações
+   - Tratamento de exceções
+   - Mensagens de erro informativas
+
+## Estrutura do Código
+
+### app1.py (Servidor Receptor)
+- Geração de chaves RSA
+- Endpoint para obtenção da chave pública
+- Webhook para recebimento de mensagens
+- Verificação de integridade
+- Descriptografia de mensagens
+
+### app2.py (Servidor Remetente)
+- Interface web para envio de mensagens
+- Obtenção da chave pública
+- Criptografia de mensagens
+- Geração de hash
+- Envio de mensagens criptografadas
+
+## Logs e Monitoramento
+
+O sistema utiliza logging para monitorar todas as operações:
+- Debug: Operações normais
+- Error: Falhas e exceções
+- Info: Status de operações importantes
+
+## Contribuição
+
+Para contribuir com o projeto:
+1. Faça um fork do repositório
+2. Crie uma branch para sua feature
+3. Faça commit das mudanças
+4. Envie um pull request
+
+## Licença
+
+Este projeto está sob a licença MIT.

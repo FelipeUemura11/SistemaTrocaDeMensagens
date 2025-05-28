@@ -1,60 +1,62 @@
 # servidor remetente
 from flask import Flask, request, jsonify, render_template
 import requests
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import hashes
-import base64
 import logging
+import hashlib
 
-# Configurar logging p/ fluxo de execucao do programa
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-def get_public_key():
-    """Obtém a chave pública do servidor receptor"""
+def obter_chave_publica():
     try:
         logger.debug("Obtendo chave publica do servidor receptor...")
-        response = requests.get('http://localhost:5000/get_public_key')
+        response = requests.get('http://localhost:5000/obter_chave_publica')
         response.raise_for_status()
 
-        public_key = serialization.load_pem_public_key(response.content)
+        n, e = map(int, response.text.split(','))
+        chave_publica = (n, e)
         logger.debug("Chave pública obtida com sucesso")
-        return public_key
+        return chave_publica
     except Exception as e:
         logger.error(f"Erro ao obter chave pública: {str(e)}")
         raise
 
-# envia a msg criptografada para o servidor receptor(app1.py)
-def send_encrypted_message(message):
+def criptografar_mensagem(mensagem, chave_publica):
+    n, e = chave_publica
+    mensagem_bytes = mensagem.encode('utf-8')
+    mensagem_int = int.from_bytes(mensagem_bytes, 'big')
+    
+    criptografado = pow(mensagem_int, e, n)
+    return criptografado
+
+def gerar_hash_mensagem(mensagem):
+    return hashlib.sha256(mensagem.encode('utf-8')).hexdigest()
+
+def enviar_mensagem_criptografada(mensagem):
     try:
-        public_key = get_public_key()
+        chave_publica = obter_chave_publica()
         
         logger.debug("Criptografando mensagem...")
-        encrypted_message = public_key.encrypt(
-            message.encode('utf-8'),
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-        encrypted_b64 = base64.b64encode(encrypted_message).decode('utf-8')
+        criptografado = criptografar_mensagem(mensagem, chave_publica)
         logger.debug("Mensagem criptografada com sucesso")
 
-        # envia via POST (Webhook)
+        logger.debug("Gerando hash da mensagem...")
+        hash_mensagem = gerar_hash_mensagem(mensagem)
+        logger.debug("Hash gerado com sucesso")
+
         logger.debug("Enviando mensagem para o webhook...")
         response = requests.post(
             'http://localhost:5000/webhook',
-            json={"encrypted_message": encrypted_b64}
+            json={
+                "criptografado_message": str(criptografado),
+                "hash_mensagem": hash_mensagem
+            }
         )
         response.raise_for_status()
         logger.debug("Mensagem enviada com sucesso")
         
-        # Retorna o conteúdo JSON da resposta
         return response.json()
     except requests.exceptions.ConnectionError as e:
         logger.error(f"Erro de conexão: {str(e)}")
@@ -64,7 +66,7 @@ def send_encrypted_message(message):
         return {"error": str(e)}
 
 @app.route("/", methods=['GET', 'POST'])
-def send():
+def enviar():
     if request.method == 'GET':
         return render_template('index.html')
     
@@ -73,13 +75,12 @@ def send():
         if not data or 'message' not in data:
             return jsonify({"error": "Mensagem não fornecida"}), 400
             
-        message = data['message']
-        result = send_encrypted_message(message)
-        return jsonify(result)
+        mensagem = data['message']
+        resultado = enviar_mensagem_criptografada(mensagem)
+        return jsonify(resultado)
     except Exception as e:
         logger.error(f"Erro na rota /: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-# servidor remetente
 if __name__ == '__main__':
     app.run(port=5001, debug=True)
