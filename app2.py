@@ -13,6 +13,8 @@ app = Flask(__name__)
 
 # Lista para armazenar mensagens
 mensagens = []
+# Conjunto para controlar IDs de mensagens já processadas
+mensagens_processadas = set()
 
 def obter_chave_publica():
     try:
@@ -80,16 +82,7 @@ def index():
             return jsonify({"erro": "Mensagem não fornecida"}), 400
         mensagem = dados['mensagem']
         resultado = enviar_mensagem_criptografada(mensagem)
-        if "status" in resultado:
-            timestamp = datetime.now().strftime("%H:%M:%S")
-            message_id = str(uuid.uuid4())[:8]
-            mensagens.append({
-                "id": message_id,
-                "timestamp": timestamp,
-                "texto": mensagem
-            })
-            if len(mensagens) > 100:
-                mensagens.pop(0)
+        # Não adicionamos a mensagem localmente aqui, pois ela será recebida do receptor
         return jsonify(resultado)
 
 @app.route("/check_messages", methods=['GET'])
@@ -98,7 +91,23 @@ def check_messages():
         # Busca o histórico de mensagens do receptor
         resposta = requests.get('http://localhost:5000/check_messages')
         resposta.raise_for_status()
-        return jsonify(resposta.json())
+        mensagens_receptor = resposta.json().get('mensagens', [])
+        
+        # Filtra apenas mensagens novas
+        mensagens_novas = [msg for msg in mensagens_receptor if msg['id'] not in mensagens_processadas]
+        
+        # Atualiza o conjunto de mensagens processadas e a lista de mensagens
+        for msg in mensagens_novas:
+            mensagens_processadas.add(msg['id'])
+            # Verifica se a mensagem já existe na lista antes de adicionar
+            if not any(m['id'] == msg['id'] for m in mensagens):
+                mensagens.append(msg)
+            
+        # Limita o tamanho da lista de mensagens
+        if len(mensagens) > 100:
+            mensagens.pop(0)
+            
+        return jsonify({"mensagens": mensagens})
     except Exception as e:
         logger.error(f"Erro ao buscar mensagens do receptor: {str(e)}")
         return jsonify({"mensagens": [], "erro": str(e)})
