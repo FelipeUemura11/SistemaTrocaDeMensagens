@@ -3,19 +3,24 @@ from flask import Flask, request, jsonify, render_template
 import requests
 import logging
 import hashlib
+from datetime import datetime
+import uuid
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# Lista para armazenar mensagens
+mensagens = []
+
 def obter_chave_publica():
     try:
         logger.debug("Obtendo chave publica do servidor receptor...")
-        response = requests.get('http://localhost:5000/obter_chave_publica')
-        response.raise_for_status()
+        resposta = requests.get('http://localhost:5000/obter_chave_publica')
+        resposta.raise_for_status()
 
-        n, e = map(int, response.text.split(','))
+        n, e = map(int, resposta.text.split(','))
         chave_publica = (n, e)
         logger.debug("Chave pública obtida com sucesso")
         return chave_publica
@@ -47,40 +52,56 @@ def enviar_mensagem_criptografada(mensagem):
         logger.debug("Hash gerado com sucesso")
 
         logger.debug("Enviando mensagem para o webhook...")
-        response = requests.post(
+        resposta = requests.post(
             'http://localhost:5000/webhook',
             json={
-                "criptografado_message": str(criptografado),
+                "mensagem_criptografada": str(criptografado),
                 "hash_mensagem": hash_mensagem
             }
         )
-        response.raise_for_status()
+        resposta.raise_for_status()
         logger.debug("Mensagem enviada com sucesso")
         
-        return response.json()
+        return resposta.json()
     except requests.exceptions.ConnectionError as e:
         logger.error(f"Erro de conexão: {str(e)}")
-        return {"error": "Não foi possível conectar ao servidor receptor. Verifique se o servidor está rodando."}
+        return {"erro": "Não foi possível conectar ao servidor receptor. Verifique se o servidor está rodando."}
     except Exception as e:
         logger.error(f"Erro ao enviar mensagem: {str(e)}")
-        return {"error": str(e)}
+        return {"erro": str(e)}
 
 @app.route("/", methods=['GET', 'POST'])
-def enviar():
+def index():
     if request.method == 'GET':
         return render_template('index.html')
-    
-    try:
-        data = request.get_json()
-        if not data or 'message' not in data:
-            return jsonify({"error": "Mensagem não fornecida"}), 400
-            
-        mensagem = data['message']
+    if request.method == 'POST':
+        dados = request.get_json()
+        if not dados or 'mensagem' not in dados:
+            return jsonify({"erro": "Mensagem não fornecida"}), 400
+        mensagem = dados['mensagem']
         resultado = enviar_mensagem_criptografada(mensagem)
+        if "status" in resultado:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            message_id = str(uuid.uuid4())[:8]
+            mensagens.append({
+                "id": message_id,
+                "timestamp": timestamp,
+                "texto": mensagem
+            })
+            if len(mensagens) > 100:
+                mensagens.pop(0)
         return jsonify(resultado)
+
+@app.route("/check_messages", methods=['GET'])
+def check_messages():
+    try:
+        # Busca o histórico de mensagens do receptor
+        resposta = requests.get('http://localhost:5000/check_messages')
+        resposta.raise_for_status()
+        return jsonify(resposta.json())
     except Exception as e:
-        logger.error(f"Erro na rota /: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Erro ao buscar mensagens do receptor: {str(e)}")
+        return jsonify({"mensagens": [], "erro": str(e)})
 
 if __name__ == '__main__':
     app.run(port=5001, debug=True)

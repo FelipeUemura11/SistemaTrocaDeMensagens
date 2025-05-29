@@ -11,12 +11,14 @@ O sistema é composto por dois servidores:
    - Responsável por receber e descriptografar as mensagens
    - Gerencia as chaves públicas e privadas
    - Verifica a integridade das mensagens
+   - **Armazena o histórico completo das mensagens**
 
 2. **Servidor Remetente (app2.py)**
    - Porta: 5001
    - Responsável por enviar mensagens criptografadas
    - Interface web para envio de mensagens
    - Gerencia a criptografia das mensagens
+   - **Busca o histórico de mensagens do receptor e exibe na interface**
 
 ## Funcionalidades Implementadas
 
@@ -34,6 +36,8 @@ O sistema é composto por dois servidores:
 - Formulário para envio de mensagens
 - Feedback visual do status do envio
 - Tratamento de erros e exceções
+- **Ambas as interfaces exibem o mesmo histórico de mensagens, em tempo real**
+- Mensagens enviadas pelo usuário local são destacadas
 
 ## Requisitos
 
@@ -54,9 +58,10 @@ python app1.py
 python app2.py
 ```
 
-3. Acesse a interface web em:
+3. Acesse as interfaces web em:
 ```
-http://localhost:5001
+http://localhost:5000  # Receptor
+http://localhost:5001  # Remetente
 ```
 
 ## Fluxo de Comunicação
@@ -71,7 +76,8 @@ http://localhost:5001
    - Recebe a mensagem criptografada e o hash
    - Descriptografa a mensagem
    - Verifica a integridade usando o hash
-   - Confirma o recebimento
+   - Confirma o recebimento e armazena a mensagem no histórico
+5. O servidor remetente busca periodicamente o histórico do receptor e exibe na interface
 
 ## Segurança
 
@@ -100,6 +106,7 @@ O sistema implementa várias camadas de segurança:
 - Webhook para recebimento de mensagens
 - Verificação de integridade
 - Descriptografia de mensagens
+- **Armazena e fornece o histórico completo das mensagens**
 
 ### app2.py (Servidor Remetente)
 - Interface web para envio de mensagens
@@ -107,6 +114,7 @@ O sistema implementa várias camadas de segurança:
 - Criptografia de mensagens
 - Geração de hash
 - Envio de mensagens criptografadas
+- **Busca e exibe o histórico do receptor**
 
 ## Logs e Monitoramento
 
@@ -114,6 +122,12 @@ O sistema utiliza logging para monitorar todas as operações:
 - Debug: Operações normais
 - Error: Falhas e exceções
 - Info: Status de operações importantes
+
+## Observações
+
+- O chat é unidirecional: apenas o remetente envia mensagens para o receptor, mas ambos veem o mesmo histórico.
+- Para um chat realmente bidirecional, seria necessário implementar o envio de mensagens do receptor para o remetente.
+- O histórico é armazenado apenas em memória (será perdido ao reiniciar o servidor receptor).
 
 ## Contribuição
 
